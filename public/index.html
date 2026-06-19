@@ -68,6 +68,13 @@
         text-align: right;
       }
 
+      .systemMessage {
+        text-align: center;
+        color: #777;
+        font-size: 14px;
+        margin: 10px 0;
+      }
+
       .userName {
         font-weight: bold;
       }
@@ -97,6 +104,10 @@
         background: #4169e1;
         color: white;
         cursor: pointer;
+      }
+
+      .submit:hover {
+        background: #274fc7;
       }
     </style>
   </head>
@@ -131,6 +142,16 @@
         const colorInput = document.querySelector('.colorInput')
         const messageList = document.querySelector('.messages')
 
+        ws.onopen = function () {
+          ws.send(
+            JSON.stringify({
+              type: 'join',
+              id: myId,
+              name: nameInput.value
+            })
+          )
+        }
+
         form.onsubmit = function (e) {
           e.preventDefault()
 
@@ -139,19 +160,13 @@
             return
           }
 
-          const now = new Date()
-          const time = now.toLocaleTimeString('ja-JP', {
-            hour: '2-digit',
-            minute: '2-digit'
-          })
-
           ws.send(
             JSON.stringify({
+              type: 'chat',
               id: myId,
               name: nameInput.value,
               color: colorInput.value,
-              text: text,
-              time: time
+              text: text
             })
           )
 
@@ -162,30 +177,40 @@
         ws.onmessage = function (event) {
           const msg = JSON.parse(event.data)
 
-          const li = document.createElement('li')
-          li.className = 'message'
-
-          if (msg.id === myId) {
-            li.classList.add('myMessage')
+          if (msg.type === 'system') {
+            const li = document.createElement('li')
+            li.className = 'systemMessage'
+            li.textContent = msg.text
+            messageList.appendChild(li)
           }
 
-          const name = document.createElement('span')
-          name.className = 'userName'
-          name.style.color = msg.color
-          name.textContent = msg.name
+          if (msg.type === 'chat') {
+            const li = document.createElement('li')
+            li.className = 'message'
 
-          const time = document.createElement('span')
-          time.className = 'time'
-          time.textContent = msg.time
+            if (msg.id === myId) {
+              li.classList.add('myMessage')
+            }
 
-          const text = document.createElement('div')
-          text.textContent = msg.text
+            const name = document.createElement('span')
+            name.className = 'userName'
+            name.style.color = msg.color
+            name.textContent = msg.name
 
-          li.appendChild(name)
-          li.appendChild(time)
-          li.appendChild(text)
+            const time = document.createElement('span')
+            time.className = 'time'
+            time.textContent = msg.time
 
-          messageList.appendChild(li)
+            const text = document.createElement('div')
+            text.textContent = msg.text
+
+            li.appendChild(name)
+            li.appendChild(time)
+            li.appendChild(text)
+
+            messageList.appendChild(li)
+          }
+
           messageList.scrollTop = messageList.scrollHeight
         }
 
